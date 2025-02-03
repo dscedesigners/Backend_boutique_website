@@ -1,0 +1,267 @@
+### Online Boutique Authentication APIs
+
+#### 1. User Sign Up (Account Creation)
+- **Endpoint**: `/api/auth/signup`
+- **Method**: `POST`
+- **Description**: Registers a new user with details specific to the boutique.
+- **Request Body** (JSON):
+    ```json
+    {
+        "fullName": "John Doe",
+        "email": "john@example.com",
+        "password": "securePassword",
+        "phone": "+1234567890",
+        "address": {
+            "street": "123 Boutique St",
+            "city": "Fashion City",
+            "state": "Style State",
+            "zip": "12345"
+        }
+    }
+    ```
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "message": "Account created successfully",
+            "userId": "uniqueUserId123",
+            "welcomeOffer": "10% off on first purchase"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Error message here"
+        }
+        ```
+
+---
+
+#### 2. User Sign In
+- **Endpoint**: `/api/auth/signin`
+- **Method**: `POST`
+- **Description**: Allows users to log in to their boutique account.
+- **Request Body** (JSON):
+    ```json
+    {
+        "email": "john@example.com",
+        "password": "securePassword"
+    }
+    ```
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "message": "Login successful",
+            "token": "JWT_token_here",
+            "userId": "uniqueUserId123"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Invalid credentials"
+        }
+        ```
+
+---
+
+#### 3. Sign In with Google
+- **Endpoint**: `/api/auth/google`
+- **Method**: `POST`
+- **Description**: Authenticates the user using Google OAuth, allowing quick access to the boutique account.
+- **Request Body** (JSON):
+    ```json
+    {
+        "tokenId": "GoogleOAuthTokenId"
+    }
+    ```
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "message": "Google sign-in successful",
+            "token": "JWT_token_here",
+            "userId": "userId_from_google"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Google sign-in failed"
+        }
+        ```
+
+---
+
+### Additional Notes
+- Store JWT tokens securely client-side for authenticated sessions.
+- Implement route protection for user-specific endpoints such as order history or personal account settings.
+
+
+
+### Online Boutique Order APIs
+
+#### 1. Create Order
+- **Endpoint**: `/api/orders/create`
+- **Method**: `POST`
+- **Description**: Places a new order for the customer.
+- **Request Body** (JSON):
+    ```json
+    {
+        "userId": "uniqueUserId123",
+        "items": [
+            {
+                "productId": "product123",
+                "quantity": 2
+            },
+            {
+                "productId": "product456",
+                "quantity": 1
+            }
+        ],
+        "shippingAddress": {
+            "street": "123 Boutique St",
+            "city": "Fashion City",
+            "state": "Style State",
+            "zip": "12345"
+        },
+        "paymentMethod": "Credit Card",
+        "totalAmount": 100.00
+    }
+    ```
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "message": "Order placed successfully",
+            "orderId": "order789",
+            "estimatedDelivery": "2024-11-20"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Error placing order"
+        }
+        ```
+
+---
+
+#### 2. View Order Details
+- **Endpoint**: `/api/orders/:orderId`
+- **Method**: `GET`
+- **Description**: Retrieves detailed information for a specific order.
+- **Path Parameter**:
+    - `orderId`: The unique ID of the order to retrieve.
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "orderId": "order789",
+            "userId": "uniqueUserId123",
+            "items": [
+                {
+                    "productId": "product123",
+                    "productName": "Blue Dress",
+                    "quantity": 2,
+                    "price": 50.00
+                },
+                {
+                    "productId": "product456",
+                    "productName": "Red Scarf",
+                    "quantity": 1,
+                    "price": 30.00
+                }
+            ],
+            "shippingAddress": {
+                "street": "123 Boutique St",
+                "city": "Fashion City",
+                "state": "Style State",
+                "zip": "12345"
+            },
+            "paymentMethod": "Credit Card",
+            "totalAmount": 100.00,
+            "status": "Processing",
+            "orderedAt": "2024-11-09T12:00:00Z",
+            "estimatedDelivery": "2024-11-20"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Order not found"
+        }
+        ```
+
+---
+
+#### 3. Update Order Status (Admin Only)
+- **Endpoint**: `/api/orders/:orderId/status`
+- **Method**: `PATCH`
+- **Description**: Updates the status of an order (e.g., "Processing," "Shipped," "Delivered").
+- **Path Parameter**:
+    - `orderId`: The unique ID of the order to update.
+- **Request Body** (JSON):
+    ```json
+    {
+        "status": "Shipped"
+    }
+    ```
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "message": "Order status updated successfully",
+            "orderId": "order789",
+            "newStatus": "Shipped"
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "Error updating order status"
+        }
+        ```
+
+---
+
+#### 4. Get User Order History
+- **Endpoint**: `/api/orders/history/:userId`
+- **Method**: `GET`
+- **Description**: Retrieves all past orders for a specific user.
+- **Path Parameter**:
+    - `userId`: The unique ID of the user.
+- **Response** (JSON):
+    - **Success**:
+        ```json
+        {
+            "userId": "uniqueUserId123",
+            "orderHistory": [
+                {
+                    "orderId": "order789",
+                    "totalAmount": 100.00,
+                    "status": "Delivered",
+                    "orderedAt": "2024-11-09T12:00:00Z"
+                },
+                {
+                    "orderId": "order456",
+                    "totalAmount": 75.00,
+                    "status": "Shipped",
+                    "orderedAt": "2024-10-15T09:00:00Z"
+                }
+            ]
+        }
+        ```
+    - **Failure**:
+        ```json
+        {
+            "error": "No orders found for this user"
+        }
+        ```
+
+---
+
+### Additional Notes
+- Orders should be secured and accessible only by the user or admin.
+- Use JWT tokens to verify user identity and access rights for order history.
