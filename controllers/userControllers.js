@@ -27,28 +27,46 @@ const CreateNewUser = async (req, res) => {
     res.status(500).json({ message: 'Error handling user login', error });
   }
 };
-
+ 
 const UpdateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, password, address,image } = req.body;
+    let { name, email, address, removeAddress } = req.body;
 
-    // Find user by ID
+    // Find user
     const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Update user profile fields
+    // Update basic user details
     if (name) user.name = name;
     if (email) user.email = email;
-    if (password) user.password = password; // In a real app, hash the password before saving
-    if (address) user.address = address;
-    if (image) user.image = image;
+
+    // Handle profile image upload
+    if (req.file) {
+      user.image = req.file.path; // Cloudinary auto-generates URL
+    }
+
+    // If "address" is provided, add it to existing addresses (instead of replacing)
+    if (address) {
+      try {
+        const parsedAddress = JSON.parse(address);
+        if (Array.isArray(parsedAddress)) {
+          user.address.push(...parsedAddress);
+        } else {
+          return res.status(400).json({ message: 'address must be an array' });
+        }
+      } catch (error) {
+        return res.status(400).json({ message: 'Invalid JSON format in address' });
+      }
+    }
+
+    // Remove a single address by ID if "removeAddress" is provided
+    if (removeAddress) {      
+      const addressId = removeAddress.trim(); // Ensure it's a string
+      user.address = user.address.filter(addr => addr._id.toString() !== addressId);
+    }
 
     await user.save();
-
     res.status(200).json({ message: 'Profile updated successfully', user });
   } catch (error) {
     console.error('Error updating profile:', error);
