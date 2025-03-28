@@ -35,6 +35,7 @@ router.post('/signup',CreateNewUser)
 router.patch('/update/:userId',upload.single('img'),UpdateUserProfile)
 router.get('/user/:userId',getUser)
 
+
 //cart ------------
 router.post('/addtocart',addToCart)
 router.delete('/removefromcart',removeOneFromCart)

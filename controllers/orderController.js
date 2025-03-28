@@ -49,7 +49,32 @@ const createOrder = async (req, res) => {
   }
 };
 
+const getAllOrders = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("Fetching orders for User ID:", userId);
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Fetch orders with product details
+    const orders = await Order.find({ user: userId })
+      .populate("orderItems.product", "name price images description") // Fetch product details
+      .sort({ createdAt: -1 });
+
+    console.log("Orders fetched:", orders);
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 
 export {
-    createOrder
+    createOrder,
+    getAllOrders
 }
