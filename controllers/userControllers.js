@@ -1,5 +1,5 @@
 // controllers/authController.js
-import {User,Cart} from '../models/userModel.js' // MongoDB User Model
+import {UserTest,Cart} from '../models/userModel.js' // MongoDB User Model
 
 // Sign Up User
 const CreateNewUser = async (req, res) => {
@@ -13,11 +13,11 @@ const CreateNewUser = async (req, res) => {
 
     // Check if the phone number already exists in the database
     phone = `+91${phone}`
-    let user = await User.findOne({ phone });
+    let user = await UserTest.findOne({ phone });
     
     if (!user) {
       // If user doesn't exist, create a new user
-      user = new User({ phone });
+      user = new UserTest({ phone });
       await user.save();
     }
     
@@ -34,7 +34,7 @@ const UpdateUserProfile = async (req, res) => {
     let { name, email, address, removeAddress } = req.body;
 
     // Find user
-    const user = await User.findById(userId);
+    const user = await UserTest.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Update basic user details

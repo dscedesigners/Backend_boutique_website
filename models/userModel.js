@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     }
   }, { timestamps: true });
     
-const User = mongoose.model('User',userSchema);
+const UserTest = mongoose.model('UserTest',userSchema);
 
 const cartSchema = new mongoose.Schema(
   {
@@ -63,6 +63,6 @@ const Cart = mongoose.model("Cart", cartSchema);
 
 
 export {
-   User,
+   UserTest,
    Cart,
 }
