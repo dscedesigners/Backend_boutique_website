@@ -1,24 +1,18 @@
-import { getAuth } from "firebase/auth";
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = process.env;
 
-const authenicateUser = async (req, res, next) => {
-    const { token } = req.body
-    if (!token) {
-      return next(new Unauthorized("Unauthorized user"))
-    }
-    try {
-      const valid = await getAuth().verifyIdToken(token)
-      if (!valid) {
-        return next(new Unauthorized("Unauthorized user"))
-      }
-      next()
-    } catch (err) {
-      console.log(err)
-      if (err instanceof Unauthorized) {
-        next(new Unauthorized("Unauthorized user"))
-      } else {
-        next(new InternalError("Internal server error"))
-      }
-    }
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer '))
+    return res.status(401).json({ message: 'Token missing' });
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
-  
-  export default authenicateUser
+};
+export default verifyToken
