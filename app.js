@@ -11,6 +11,7 @@ connectmongoDb()
 import userRouter from './routers/userRouter.js'
 import orderRouter from './routers/orderRouter.js'
 import productRouter from './routers/productRouter.js'
+import authRouter from './routers/authRouter.js';
 
 const PORT = process.env.PORT || 5000
 const app = express()
@@ -19,8 +20,10 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-
+//user 
 app.use('/api/users',userRouter)
+app.use('/api/auth', authRouter);
+
 app.use('/api/order',orderRouter)
 app.use('/api/product',productRouter)
 
