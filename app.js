@@ -20,10 +20,11 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-//user 
+//user the cart crud will by the users api
 app.use('/api/users',userRouter)
 app.use('/api/auth', authRouter);
 
+//for order we have to check weather the user have token then we have to do crud of the order over here
 app.use('/api/order',orderRouter)
 app.use('/api/product',productRouter)
 
