@@ -29,5 +29,14 @@ router.get("/debug/cart/:userId", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+//this is temp 
+router.delete("/clear-cart/:userId", async (req, res) => {
+  try {
+    await Cart.findOneAndDelete({ user: req.params.userId });
+    res.json({ message: "Cart cleared successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;
