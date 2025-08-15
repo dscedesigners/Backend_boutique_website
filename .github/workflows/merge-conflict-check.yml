@@ -1,0 +1,75 @@
+name: Merge Conflict Checker
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-merge-conflict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Add PR branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
+      
+      - name: Attempt merge
+        id: merge
+        run: |
+          set +e
+          git merge --no-commit --no-ff ${{ github.event.pull_request.head.ref }}
+          if [ $? -ne 0 ]; then
+            echo "conflict=true" >> $GITHUB_OUTPUT
+          else
+            echo "conflict=false" >> $GITHUB_OUTPUT
+          fi
+          set -e
+
+      - name: Create GitHub Check (pass/fail)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const conflict = process.env.CONFLICT === 'true';
+            const conclusion = conflict ? "failure" : "success";
+            const title = conflict ? "❌ Merge Conflict" : "✅ No Merge Conflicts";
+            const summary = conflict
+              ? `This PR cannot be merged cleanly into **${{ github.event.pull_request.base.ref }}**. Please resolve conflicts.`
+              : `This PR merges cleanly into **${{ github.event.pull_request.base.ref }}**.`;
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Merge Conflict Check",
+              head_sha: context.payload.pull_request.head.sha,
+              status: "completed",
+              conclusion,
+              output: {
+                title,
+                summary
+              }
+            });
+        env:
+          CONFLICT: ${{ steps.merge.outputs.conflict }}
+
+      - name: PR conflict
+        if: steps.merge.outputs.conflict == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "⚠️ **Merge Conflict Detected** — Please resolve before merging."
+            })
+
+      - name: Fail workflow if conflict
+        if: steps.merge.outputs.conflict == 'true'
+        run: |
+          echo "Merge conflicts detected. Failing workflow."
+          exit 1
