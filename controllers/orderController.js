@@ -1,5 +1,4 @@
 import Order from "../models/orderModel.js";
-
 import {Cart} from "../models/userModel.js";
 
 const createOrder = async (req, res) => {
@@ -11,18 +10,36 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Fetch the user's cart
-    const cart = await Cart.findOne({ user }).populate("cartItems.product");
+    // Fetch the user's cart with populated product details
+    const cart = await Cart.findOne({ user }).populate({
+      path: "cartItems.product",
+      select: "name price images description" // Specify the fields you need
+    });
 
     if (!cart || cart.cartItems.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    // Calculate total price
-    const totalPrice = cart.cartItems.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
+    // Validate that all products are properly populated
+    const invalidItems = cart.cartItems.filter(item => !item.product || !item.product.price);
+    if (invalidItems.length > 0) {
+      return res.status(400).json({ 
+        message: "Some products in cart are invalid or no longer available",
+        invalidItems: invalidItems.length
+      });
+    }
+
+    // Calculate total price with additional validation
+    const totalPrice = cart.cartItems.reduce((sum, item) => {
+      if (item.product && item.product.price && item.quantity) {
+        return sum + (item.product.price * item.quantity);
+      }
+      return sum;
+    }, 0);
+
+    if (totalPrice <= 0) {
+      return res.status(400).json({ message: "Invalid total price calculated" });
+    }
 
     // Create the order
     const newOrder = new Order({
@@ -71,8 +88,6 @@ const getAllOrders = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
 
 export {
     createOrder,
