@@ -1,28 +1,40 @@
 name: Merge Conflict Checker
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
 
 jobs:
   check-merge-conflict:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout target branch
+      # Checkout the base branch (e.g., main, or whatever the PR targets)
+      - name: Checkout base branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
 
-      - name: Add PR branch
+      # Fetch the latest base branch safely
+      - name: Fetch latest base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
+      # Fetch the PR branch into a separate local branch (avoid conflicts with checked-out base branch)
+      - name: Fetch PR branch
         run: |
-          git fetch origin ${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}
-      
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
+
+      # Try merging PR branch into the base branch
       - name: Attempt merge
         id: merge
         run: |
           set +e
-          git merge --no-commit --no-ff ${{ github.event.pull_request.head.ref }}
+          git merge --no-commit --no-ff pr-${{ github.event.pull_request.number }}
           if [ $? -ne 0 ]; then
             echo "conflict=true" >> $GITHUB_OUTPUT
           else
@@ -30,11 +42,13 @@ jobs:
           fi
           set -e
 
+      # Create a GitHub Check Run (pass/fail indicator on PR)
       - name: Create GitHub Check (pass/fail)
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const conflict = process.env.CONFLICT === 'true';
+            const conflict = "${{ steps.merge.outputs.conflict }}" === "true";
             const conclusion = conflict ? "failure" : "success";
             const title = conflict ? "❌ Merge Conflict" : "✅ No Merge Conflicts";
             const summary = conflict
@@ -53,21 +67,22 @@ jobs:
                 summary
               }
             });
-        env:
-          CONFLICT: ${{ steps.merge.outputs.conflict }}
 
-      - name: PR conflict
+      # Leave a comment if there’s a conflict
+      - name: Comment on PR if conflict
         if: steps.merge.outputs.conflict == 'true'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: "⚠️ **Merge Conflict Detected** — Please resolve before merging."
-            })
+            });
 
+      # Fail the workflow if conflict is found
       - name: Fail workflow if conflict
         if: steps.merge.outputs.conflict == 'true'
         run: |
