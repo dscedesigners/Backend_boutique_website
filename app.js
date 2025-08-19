@@ -12,6 +12,7 @@ import userRouter from './routers/userRouter.js'
 import orderRouter from './routers/orderRouter.js'
 import productRouter from './routers/productRouter.js'
 import authRouter from './routers/authRouter.js';
+import adminRouter from './routers/adminRouter.js';
 
 const PORT = process.env.PORT || 5000
 const app = express()
@@ -27,6 +28,7 @@ app.use('/api/auth', authRouter);
 //for order we have to check weather the user have token then we have to do crud of the order over here
 app.use('/api/order',orderRouter)
 app.use('/api/product',productRouter)
+app.use('/api/admin', adminRouter)
 
 app.all("*",()=>{
     throw new Error("Invalid route")
