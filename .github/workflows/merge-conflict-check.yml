@@ -1,10 +1,9 @@
 name: Merge Conflict Checker
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
-# Explicit permissions for the GITHUB_TOKEN
 permissions:
   contents: read
   pull-requests: write
@@ -14,8 +13,8 @@ jobs:
   check-merge-conflict:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the base branch (e.g., main or whatever the PR targets)
-      - name: Checkout target branch
+      # Checkout the base branch (e.g., main, or whatever the PR targets)
+      - name: Checkout base branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
@@ -25,17 +24,17 @@ jobs:
       - name: Fetch latest base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
-      # Fetch the PR branch into a separate local branch
+      # Fetch the PR branch into a separate local branch (avoid conflicts with checked-out base branch)
       - name: Fetch PR branch
         run: |
-          git fetch origin ${{ github.event.pull_request.head.ref }}:pr-${{ github.event.pull_request.head.ref }}
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-${{ github.event.pull_request.number }}
 
       # Try merging PR branch into the base branch
       - name: Attempt merge
         id: merge
         run: |
           set +e
-          git merge --no-commit --no-ff pr-${{ github.event.pull_request.head.ref }}
+          git merge --no-commit --no-ff pr-${{ github.event.pull_request.number }}
           if [ $? -ne 0 ]; then
             echo "conflict=true" >> $GITHUB_OUTPUT
           else
