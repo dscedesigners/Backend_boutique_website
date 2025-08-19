@@ -4,11 +4,16 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
 jobs:
   check-merge-conflict:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the base branch (e.g., main, or whatever the PR targets)
+      # Checkout the base branch (e.g., main or whatever the PR targets)
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
@@ -19,7 +24,7 @@ jobs:
       - name: Fetch latest base branch
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
-      # Fetch the PR branch into a separate local branch (to avoid conflicts)
+      # Fetch the PR branch into a separate local branch
       - name: Fetch PR branch
         run: |
           git fetch origin ${{ github.event.pull_request.head.ref }}:pr-${{ github.event.pull_request.head.ref }}
