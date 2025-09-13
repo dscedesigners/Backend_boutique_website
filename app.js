@@ -17,7 +17,14 @@ import adminRouter from './routers/adminRouter.js';
 const PORT = process.env.PORT || 5000
 const app = express()
 
-app.use(cors())
+// CORS configuration
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:5173'], // Frontend URLs
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
