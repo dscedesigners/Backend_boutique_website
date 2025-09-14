@@ -1,7 +1,9 @@
 import express from "express";
 import { 
     createOrder,
-    getAllOrders
+    getAllOrders,
+    getOrderAnalytics,
+     getSalesSummary 
  } from "../controllers/orderController.js";
 import { Cart } from "../models/userModel.js"; // Add this import
 
@@ -14,6 +16,10 @@ const router = express.Router();
 router.route("/neworder").post(createOrder);
 router.route("/getallorders/:userId").get(getAllOrders);
 
+// NEW ANALYTICS ROUTE
+router.route("/analytics").get(getOrderAnalytics);
+
+router.route("/sales-summary").get(getSalesSummary);
 //this temporary debug route to your orderRouter.js for testing
 router.get("/debug/cart/:userId", async (req, res) => {
   try {
