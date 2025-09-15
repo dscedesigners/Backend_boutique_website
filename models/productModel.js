@@ -16,9 +16,11 @@ const productSchema = new mongoose.Schema({
     min: 0 
   },
   category: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Category", 
     required: true 
   },
+
   stock: { 
     type: Number, 
     required: true, 
@@ -28,22 +30,57 @@ const productSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  images: [{ 
+
+  thumbnail: { 
     type: String, 
     required: true 
-  }], // Array of image URLs
+  },
+
+  otherImages: {
+    type: [String],
+    default: []
+  },
+
+  gender: {
+    type: String,
+    enum: ["male", "female", "unisex","kids"], 
+    required: true
+  },
+  
+color: {
+    type: String, // Changed from [String]
+    trim: true
+  },
+
+  size: {
+    type: String,
+    trim: true
+  },
+
+  cloth: {
+    type: String,
+    trim: true
+  },
+  vendor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User", 
+    required: true
+  },
   rating: { 
     type: Number, 
     default: 0, 
     min: 0, 
     max: 5 
-  }, // Average rating
+  },
   reviews: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Review' 
   }],
 }, { timestamps: true });
 
+// Index to improve query performance
+productSchema.index({ category: 1, subcategory: 1 });
+
 const Product = mongoose.model('Product', productSchema);
 
-export default Product
+export default Product;

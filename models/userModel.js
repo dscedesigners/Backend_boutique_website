@@ -1,69 +1,46 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    phone: { 
-      type: String, 
-      required: true, 
-      unique: true 
-    },
-    name: { 
-      type: String 
-    },
-    email: { 
-      type: String, 
-      unique: true, 
-      sparse: true // Allows multiple null/undefined values in a unique index
-    },
-    password: { 
-      type: String 
-    },
-    address: [
-      {
-        fullName: String,
-        street: String,
-        city: String,
-        state: String,
-        country: String,
-        zipCode: String,
-      }
-    ],
-    image:{
-        type:String
-    },
-    createdAt: { type: Date, default: Date.now }
-  }, { timestamps: true });
-    
-const User = mongoose.model('User',userSchema);
-
-const cartSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    cartItems: [
-      {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-      },
-    ],
+  phone: { 
+    type: String, 
+    required: false, 
+    unique: true,
+    sparse: true 
   },
-  { timestamps: true }
-);
+  name: { 
+    type: String,
+    required: true
+  },
+  email: { 
+    type: String, 
+    unique: true, 
+    sparse: true 
+  },
+  password: { 
+    type: String,
+    required: true 
+  },
+  role: {
+    type: String,
+    enum: ["admin", "vendor", "user"], 
+    default: "user",
+    required: true
+  },
+  addresses: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Address", 
+    required: false
+  }],
+  image: {
+    type: String,
+    required: false 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+}, { timestamps: true });
 
-const Cart = mongoose.model("Cart", cartSchema);
+const User = mongoose.model('User', userSchema);
 
-
-export {
-   User,
-   Cart,
-}
+export { User };

@@ -1,35 +1,46 @@
 import express from "express";
-import dotenv from 'dotenv'
-import cors from 'cors'
-dotenv.config()
-
-//mongoDB 
+import dotenv from 'dotenv';
+import cors from 'cors';
 import connectmongoDb from "./utiles/db/mongoDb.js";
-connectmongoDb()
+import addressRoutes from './routes/addressRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import refundRoutes from './routes/refundRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import rateLimitMiddleware from "./middlewares/rateLimitMiddleware.js";
+import categoryRoutes from './routes/categoryRoutes.js';
+import otpRoutes from './routes/otpRoutes.js';
 
-//routers
-import userRouter from './routers/userRouter.js'
-import orderRouter from './routers/orderRouter.js'
-import productRouter from './routers/productRouter.js'
-import authRouter from './routers/authRouter.js';
+dotenv.config();
 
-const PORT = process.env.PORT || 5000
-const app = express()
+// MongoDB connection
+connectmongoDb();
 
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+const PORT = process.env.PORT || 5000;
+const app = express();
 
-//user the cart crud will by the users api
-app.use('/api/users',userRouter)
-app.use('/api/auth', authRouter);
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-//for order we have to check weather the user have token then we have to do crud of the order over here
-app.use('/api/order',orderRouter)
-app.use('/api/product',productRouter)
+// Routes
+app.use('/api/addresses', addressRoutes);
+app.use('/api/carts', cartRoutes);
+app.use('/api/users', rateLimitMiddleware(15 * 60 * 1000, 10),userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/refunds', refundRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/otp',otpRoutes); 
 
-app.all("*",()=>{
-    throw new Error("Invalid route")
-})
 
-app.listen(PORT,console.log(`Server running at PORT:${PORT}`))
+// Handle invalid routes
+app.all("*", (req, res) => {
+  res.status(404).json({ message: "Invalid route" });
+});
+
+app.listen(PORT, () => console.log(`Server running at PORT:${PORT}`));
