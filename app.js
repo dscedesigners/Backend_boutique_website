@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/addresses', addressRoutes);
-app.use('/api/carts', cartRoutes);
+app.use('/api/cart', cartRoutes);
 app.use('/api/users', rateLimitMiddleware(15 * 60 * 1000, 10),userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/refunds', refundRoutes);

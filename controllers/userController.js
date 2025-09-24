@@ -47,31 +47,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// export const updateUserProfile = async (req, res) => {
-//   try {
-//     console.log('Update User Profile called at', new Date().toLocaleString());
-//     const userId = req.user.id; // From verifyTokenMiddleware
-//     const { name } = req.body;
-//     if (!name) {
-//       return res.status(400).json({ message: 'Name is required for profile update' });
-//     }
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-//     user.name = name; // Only update name
-//     await user.save();
-//     res.status(200).json({
-//       message: 'Profile updated successfully',
-//       user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
-//     });
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     res.status(500).json({ message: 'Error updating profile', error: error.message });
-//   }
-// };
-
-// Other controllers (unchanged for brevity)
 export const getUserById = async (req, res) => {
   try {
     console.log('Get User By ID called at', new Date().toLocaleString());
@@ -170,23 +145,25 @@ export const userLogin = async (req, res) => {
 export const userSignup = async (req, res) => {
   try {
     console.log('User Signup called at', new Date().toLocaleString());
-    const { name, email, phone, password, otp } = req.body;
-    if (!name || !password || !otp || (!email && !phone)) {
-      return res.status(400).json({ message: 'Name, password, OTP, and either email or phone are required' });
+    const { name, email, phone, password, emailOtp, phoneOtp } = req.body;
+    if (!name || !email || !phone || !password || !emailOtp || !phoneOtp) {
+      return res.status(400).json({ message: 'Name, email, phone, password, email OTP, and phone OTP are required' });
     }
-    const contact = email || phone;
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
       return res.status(400).json({ message: 'Email or phone already exists' });
     }
-    const otpRecord = await Otp.findOne({ contact, otp, purpose: 'signup', expiresAt: { $gt: new Date() } });
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    // Verify both email and phone OTPs
+    const emailOtpRecord = await Otp.findOne({ contact: email, otp: emailOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    const phoneOtpRecord = await Otp.findOne({ contact: phone, otp: phoneOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    if (!emailOtpRecord || !phoneOtpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP for email or phone' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, phone, password: hashedPassword, role: 'user' });
     await user.save();
-    await Otp.deleteOne({ _id: otpRecord._id });
+    await Otp.deleteOne({ _id: emailOtpRecord._id });
+    await Otp.deleteOne({ _id: phoneOtpRecord._id });
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     res.status(201).json({ message: 'User signed up successfully', token, user: { id: user._id, name, email, phone } });
   } catch (error) {
@@ -254,12 +231,18 @@ export const resetPassword = async (req, res) => {
 };
 
 export const verifyToken = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Token missing' });
+  }
+
+  const token = authHeader.split(' ')[1];
   try {
-    console.log('Verify Token called at', new Date().toLocaleString());
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; 
     res.status(200).json({ message: 'Token verified successfully', user: req.user });
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ message: 'Error verifying token', error: error.message });
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
 
@@ -289,26 +272,27 @@ export const adminLogin = async (req, res) => {
 export const adminSignup = async (req, res) => {
   try {
     console.log('Admin Signup called at', new Date().toLocaleString());
-    const { name, email, phone, password, otp } = req.body;
-    if (!name || !password || !otp || (!email && !phone)) {
-      return res.status(400).json({ message: 'Name, password, OTP, and either email or phone are required' });
+    const { name, email, phone, password, emailOtp, phoneOtp } = req.body;
+    if (!name || !email || !phone || !password || !emailOtp || !phoneOtp) {
+      return res.status(400).json({ message: 'Name, email, phone, password, email OTP, and phone OTP are required' });
     }
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Only admins can register other admins' });
     }
-    const contact = email || phone;
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
       return res.status(400).json({ message: 'Email or phone already exists' });
     }
-    const otpRecord = await Otp.findOne({ contact, otp, purpose: 'signup', expiresAt: { $gt: new Date() } });
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    const emailOtpRecord = await Otp.findOne({ contact: email, otp: emailOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    const phoneOtpRecord = await Otp.findOne({ contact: phone, otp: phoneOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    if (!emailOtpRecord || !phoneOtpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP for email or phone' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, phone, password: hashedPassword, role: 'admin' });
     await user.save();
-    await Otp.deleteOne({ _id: otpRecord._id });
+    await Otp.deleteOne({ _id: emailOtpRecord._id });
+    await Otp.deleteOne({ _id: phoneOtpRecord._id });
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '48h' });
     res.status(201).json({ message: 'Admin signed up successfully', token, user: { id: user._id, name, email, phone } });
   } catch (error) {
@@ -343,23 +327,24 @@ export const vendorLogin = async (req, res) => {
 export const vendorSignup = async (req, res) => {
   try {
     console.log('Vendor Signup called at', new Date().toLocaleString());
-    const { name, email, phone, password, otp } = req.body;
-    if (!name || !password || !otp || (!email && !phone)) {
-      return res.status(400).json({ message: 'Name, password, OTP, and either email or phone are required' });
+    const { name, email, phone, password, emailOtp, phoneOtp } = req.body;
+    if (!name || !email || !phone || !password || !emailOtp || !phoneOtp) {
+      return res.status(400).json({ message: 'Name, email, phone, password, email OTP, and phone OTP are required' });
     }
-    const contact = email || phone;
     const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
       return res.status(400).json({ message: 'Email or phone already exists' });
     }
-    const otpRecord = await Otp.findOne({ contact, otp, purpose: 'signup', expiresAt: { $gt: new Date() } });
-    if (!otpRecord) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    const emailOtpRecord = await Otp.findOne({ contact: email, otp: emailOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    const phoneOtpRecord = await Otp.findOne({ contact: phone, otp: phoneOtp, purpose: 'signup', expiresAt: { $gt: new Date() } });
+    if (!emailOtpRecord || !phoneOtpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP for email or phone' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, phone, password: hashedPassword, role: 'vendor' });
     await user.save();
-    await Otp.deleteOne({ _id: otpRecord._id });
+    await Otp.deleteOne({ _id: emailOtpRecord._id });
+    await Otp.deleteOne({ _id: phoneOtpRecord._id });
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '48h' });
     res.status(201).json({ message: 'Vendor signed up successfully', token, user: { id: user._id, name, email, phone } });
   } catch (error) {

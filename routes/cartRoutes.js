@@ -1,15 +1,13 @@
 import express from 'express';
-import { createCart, getCart, updateCart, deleteCart, addItemToCart, removeItemFromCart } from '../controllers/cartController.js';
+import { addItemToCart, removeItemFromCart, getCart } from '../controllers/cartController.js';
+import verifyToken from '../middlewares/verifyToken.js';
 
 const RouteTemplate = () => {
   const router = express.Router();
 
-  router.post('/', createCart);
-  router.get('/:id', getCart);
-  router.put('/:id', updateCart);
-  router.delete('/:id', deleteCart);
-  router.post('/:id/items', addItemToCart);
-  router.delete('/:id/items/:itemId', removeItemFromCart);
+  router.post('/items', verifyToken, addItemToCart);
+  router.delete('/items/:productId', verifyToken, removeItemFromCart);
+  router.get('/', verifyToken, getCart);
 
   return router;
 };

@@ -1,4 +1,4 @@
-import  Otp  from '../models/otpModel.js';
+import Otp from '../models/otpModel.js';
 import { User } from '../models/userModel.js';
 import { sendEmail } from '../utiles/nodemailer.js';
 
@@ -28,8 +28,10 @@ export const createOtp = async (req, res) => {
     // Check for existing valid OTP
     const existingOtp = await Otp.findOne({ contact, purpose, expiresAt: { $gt: new Date() } });
     if (existingOtp) {
-      return res.status(400).json({ message: 'Existing OTP is still valid' });
+      // Delete the existing valid OTP
+      await Otp.deleteOne({ _id: existingOtp._id });
     }
+    // Generate new OTP and create new record
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
     await Otp.create({
@@ -40,6 +42,7 @@ export const createOtp = async (req, res) => {
       expiresAt,
       user: user ? user._id : null,
     });
+    // Send the new OTP
     if (contact.includes('@')) {
       await sendEmail(contact, `${purpose} OTP`, `Your OTP for ${purpose} is: ${otp}`);
     } else {
@@ -78,16 +81,18 @@ export const resendOtp = async (req, res) => {
     if (!contact || !purpose || !['signup', 'forgotPassword'].includes(purpose)) {
       return res.status(400).json({ message: 'Valid contact and purpose (signup or forgotPassword) are required' });
     }
-    // Check for existing valid OTP
-    const existingOtp = await Otp.findOne({ contact, purpose, expiresAt: { $gt: new Date() } });
-    if (existingOtp) {
-      return res.status(400).json({ message: 'Existing OTP is still valid' });
-    }
     // For forgotPassword, user must exist
     const user = await User.findOne({ $or: [{ email: contact }, { phone: contact }] });
     if (purpose === 'forgotPassword' && !user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    // Check for existing valid OTP
+    const existingOtp = await Otp.findOne({ contact, purpose, expiresAt: { $gt: new Date() } });
+    if (existingOtp) {
+      // Delete the existing valid OTP
+      await Otp.deleteOne({ _id: existingOtp._id });
+    }
+    // Generate new OTP and create new record
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
     await Otp.create({
@@ -98,6 +103,7 @@ export const resendOtp = async (req, res) => {
       expiresAt,
       user: user ? user._id : null,
     });
+    // Send the new OTP
     if (contact.includes('@')) {
       await sendEmail(contact, `${purpose} OTP`, `Your OTP for ${purpose} is: ${otp}`);
     } else {

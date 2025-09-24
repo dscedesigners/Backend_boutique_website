@@ -1,15 +1,17 @@
 import express from 'express';
-import { createAddress, getAllAddresses, getAddressById, updateAddress, deleteAddress, setDefaultAddress } from '../controllers/addressController.js';
+import { createAddress, getAllAddresses, getAddressById, updateAddress, deleteAddress, setDefaultAddress, getDefaultAddress } from '../controllers/addressController.js';
+import verifyToken from '../middlewares/verifyToken.js';
 
 const RouteTemplate = () => {
   const router = express.Router();
 
-  router.post('/', createAddress);
-  router.get('/', getAllAddresses);
-  router.get('/:id', getAddressById);
-  router.put('/:id', updateAddress);
-  router.delete('/:id', deleteAddress);
-  router.patch('/:id/default', setDefaultAddress);
+  router.post('/', verifyToken, createAddress);
+  router.get('/', verifyToken, getAllAddresses);
+  router.get('/default', verifyToken, getDefaultAddress);
+  router.get('/:id', verifyToken, getAddressById);
+  router.put('/:id', verifyToken, updateAddress);
+  router.delete('/:id', verifyToken, deleteAddress);
+  router.patch('/:id/default', verifyToken, setDefaultAddress);
 
   return router;
 };
