@@ -410,3 +410,52 @@ export const vendorResetPassword = async (req, res) => {
     res.status(500).json({ message: 'Error during vendor password reset', error: error.message });
   }
 };
+export const updateUserProfile = async (req, res) => {
+  try {
+    console.log('Update User Profile called at', new Date().toLocaleString());
+    const { name, email, phone } = req.body;
+
+    if (!name && !email && !phone) {
+      return res.status(400).json({ message: 'At least one field (name, email, phone) is required' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent role change or other fields
+    if (name) user.name = name;
+    if (email) {
+      if (email !== user.email) {
+        const existingEmail = await User.findOne({ email, _id: { $ne: user._id } });
+        if (existingEmail) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+        user.email = email;
+      }
+    }
+    if (phone) {
+      if (phone !== user.phone) {
+        const existingPhone = await User.findOne({ phone, _id: { $ne: user._id } });
+        if (existingPhone) {
+          return res.status(400).json({ message: 'Phone already in use' });
+        }
+        user.phone = phone;
+      }
+    }
+
+    await user.save();
+
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ message: 'Error updating profile', error: error.message });
+  }
+};

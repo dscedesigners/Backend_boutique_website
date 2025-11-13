@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllUsers, getUserById, updateUser, deleteUser, userLogin, userSignup, userForgotPassword, verifyToken, adminLogin, vendorLogin, vendorSignup, vendorForgotPassword, resetPassword, vendorResetPassword, adminSignup, getUserDetails } from '../controllers/userController.js';
+import { getAllUsers, getUserById, updateUser, deleteUser, userLogin, userSignup, userForgotPassword, verifyToken, adminLogin, vendorLogin, vendorSignup, vendorForgotPassword, resetPassword, vendorResetPassword, adminSignup, getUserDetails, updateUserProfile } from '../controllers/userController.js';
 import verifyTokenMiddleware from '../middlewares/verifyToken.js';
 import checkRole from '../middlewares/checkRole.js';
 import rateLimitMiddleware from '../middlewares/rateLimitMiddleware.js';
@@ -9,6 +9,7 @@ const RouteTemplate = () => {
 
   router.get('/', rateLimitMiddleware(15 * 60 * 1000, 10), verifyTokenMiddleware, checkRole(['admin']), getAllUsers);
   router.get('/me', rateLimitMiddleware(15 * 60 * 1000, 10), verifyTokenMiddleware, getUserDetails);
+  router.put('/profile', rateLimitMiddleware(15 * 60 * 1000, 10), verifyTokenMiddleware, updateUserProfile);
   router.get('/:id', rateLimitMiddleware(15 * 60 * 1000, 10), verifyTokenMiddleware, checkRole(['admin']), getUserById);
   router.put('/:id', rateLimitMiddleware(15 * 60 * 1000, 5), verifyTokenMiddleware, checkRole(['admin']), updateUser);
   router.delete('/:id', rateLimitMiddleware(15 * 60 * 1000, 5), verifyTokenMiddleware, checkRole(['admin']), deleteUser);
