@@ -11,6 +11,7 @@ import {
 import verifyToken from '../middlewares/verifyToken.js';
 import checkRole from '../middlewares/checkRole.js';
 import multer from 'multer';
+import optionalAuth from '../middlewares/optionalAuth.js';
 
 const RouteTemplate = () => {
   const router = express.Router();
@@ -28,12 +29,12 @@ const RouteTemplate = () => {
   );
   
   // Get all products (public)
-  router.get('/', getAllProducts);
+  router.get('/',optionalAuth, getAllProducts);
 
   router.get('/brands', getAllBrands);
   router.get('/:id/suggestions', getProductSuggestions);
   // Get product by ID (public)
-  router.get('/:id', getProductById);
+  router.get('/:id', optionalAuth,getProductById);
   
   // Update product (admin or vendor)
   router.put('/:id', 

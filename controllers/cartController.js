@@ -75,19 +75,24 @@ export const removeItemFromCart = async (req, res) => {
 // Get all products in cart
 export const getCart = async (req, res) => {
   try {
-    const userId = req.user.id; // Extracted from JWT token
+    const userId = req.user.id;
+    const TAX_RATE = 5; // 5% tax
 
-    // Find cart and populate product details
     const cart = await Cart.findOne({ user: userId }).populate({
       path: 'cartItems.product',
-      select: 'name cloth color size thumbnail stock',
+      select: 'name cloth color size thumbnail stock price',
     });
 
-    if (!cart) {
-      return res.status(404).json({ message: 'Cart not found' });
+    if (!cart || cart.cartItems.length === 0) {
+      return res.status(200).json({
+        cartItems: [],
+        subtotal: 0,
+        taxrate: TAX_RATE,
+        total: 0,
+        itemCount: 0,
+      });
     }
 
-    // Format response
     const formattedItems = cart.cartItems.map((item) => ({
       productId: item.product._id,
       quantity: item.quantity,
@@ -97,11 +102,41 @@ export const getCart = async (req, res) => {
       size: item.product.size,
       thumbnail: item.product.thumbnail,
       stock: item.product.stock,
+      price: item.product.price,
     }));
 
-    res.status(200).json({ cartItems: formattedItems });
+    const subtotal = formattedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const tax = subtotal * (TAX_RATE / 100);
+    const total = subtotal + tax;
+
+    res.status(200).json({
+      cartItems: formattedItems,
+      subtotal,
+      taxrate: TAX_RATE,
+      total,
+      itemCount: formattedItems.length,
+    });
   } catch (error) {
     console.error('Error fetching cart:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+export const getCartLength = async (req, res) => {
+  try {
+    const userId = req.user.id;               // from verifyToken
+
+    const cart = await Cart.findOne({ user: userId })
+      .select('cartItems');                  // we only need the array
+
+    const length = cart ? cart.cartItems.length : 0;
+
+    res.status(200).json({ length });
+  } catch (error) {
+    console.error('Error fetching cart length:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

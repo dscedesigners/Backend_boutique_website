@@ -1,7 +1,7 @@
 import Product from '../models/productModel.js';
 import { cloudinary } from '../utiles/cloudinary.js';
 import Category from '../models/categoryModel.js';
-
+import Cart from '../models/cartModel.js';   // <-- ADD THIS
 export const createProduct = async (req, res) => {
   try {
     // This line now expects 'color' and 'size' to be single strings from the request body.
@@ -85,18 +85,53 @@ export const getAllProducts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const query = {};
+
+  
+    if (req.query.search) {
+      query.name = { $regex: req.query.search, $options: 'i' }; // "LIKE" functionality
+    }
+
+    // Build filters (existing ones - unchanged)
     if (req.query.minPrice) query.price = { ...query.price, $gte: parseFloat(req.query.minPrice) };
     if (req.query.maxPrice) query.price = { ...query.price, $lte: parseFloat(req.query.maxPrice) };
     if (req.query.gender) query.gender = req.query.gender;
     if (req.query.category) query.category = req.query.category;
     if (req.query.rating) query.rating = { $gte: parseFloat(req.query.rating) };
     if (req.query.brands) query.brand = { $in: req.query.brands.split(',') };
+
+    const userId = req.user?.id; // from optionalAuth
+
+    // Fetch products
     const products = await Product.find(query)
       .select('name price brand thumbnail')
       .skip(skip)
       .limit(limit)
       .lean();
+
     const total = await Product.countDocuments(query);
+
+    // Only if user is logged in → fetch cart quantities
+    if (userId) {
+      const cart = await Cart.findOne({ user: userId })
+        .select('cartItems.product cartItems.quantity')
+        .lean();
+
+      if (cart) {
+        const cartMap = new Map();
+        cart.cartItems.forEach(item => {
+          if (item.quantity > 0) {
+            cartMap.set(item.product.toString(), item.quantity);
+          }
+        });
+
+        // Add `cart` field only if quantity exists
+        products.forEach(p => {
+          const qty = cartMap.get(p._id.toString());
+          if (qty) p.cart = qty;
+        });
+      }
+    }
+
     res.status(200).json({
       message: 'Fetched all products',
       data: products,
@@ -107,17 +142,36 @@ export const getAllProducts = async (req, res) => {
     res.status(500).json({ message: 'Error fetching products', error: error.message });
   }
 };
-
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id; // from optionalAuth
+
     const product = await Product.findById(id)
       .populate('category', 'name')
-      .populate('vendor', 'username')
+      .populate('vendor', '_id')
       .lean();
-    if (!product) return res.status(404).json({ message: 'Product not found' });
-    // This response will now automatically include the single string color, size, and cloth fields.
-    res.status(200).json({ message: 'Product fetched successfully', data: product });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Only check cart if user is logged in
+    if (userId) {
+      const cartEntry = await Cart.findOne(
+        { user: userId, 'cartItems.product': id },
+        { 'cartItems.$': 1 }
+      ).lean();
+
+      if (cartEntry?.cartItems?.[0]?.quantity > 0) {
+        product.cart = cartEntry.cartItems[0].quantity;
+      }
+    }
+
+    res.status(200).json({
+      message: 'Product fetched successfully',
+      data: product
+    });
   } catch (error) {
     console.error('Error fetching product:', error);
     res.status(500).json({ message: 'Error fetching product', error: error.message });
